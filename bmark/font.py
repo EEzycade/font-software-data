@@ -8,7 +8,12 @@ from fontTools.pens.t2CharStringPen import T2CharStringPen
 import PIL.Image
 import yaml
 import numpy as np
-from tqdm import tqdm
+try:
+    # Use tqdm if installed
+    from tqdm import tqdm
+except ImportError:
+    # But don't throw an error if not
+    tqdm = lambda it: it
 
 
 def __main__():

@@ -6,5 +6,12 @@ setup(
     description='bmark',
     url='https://github.com/EEzycade/font-software-data',
     packages=find_packages(),
-    install_requires=[],
+    install_requires=[
+        "Pillow==9.1.0",
+        "potracer==0.0.1",
+        "numpy",
+        "fonttools==4.31.2",
+        "pyyaml",
+        "imutils",
+    ],
 )
