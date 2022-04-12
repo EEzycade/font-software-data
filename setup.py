@@ -14,5 +14,6 @@ setup(
         "fonttools==4.31.2",
         "pyyaml",
         "imutils",
+        "pytesseract",
     ],
 )
