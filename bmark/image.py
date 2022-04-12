@@ -54,7 +54,7 @@ def crop(image):
     copy = image.copy()
     
     # Grayscale and blur the image
-    copy = cv2.threshold(copy)
+    copy = threshold(copy)
 
     # Find edges
     canny = cv2.Canny(copy,100,300) # Find all the edges
