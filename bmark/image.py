@@ -1,11 +1,10 @@
 # Methods Used in manipulating the images
 
 import math
-from flask import flash
 from cv2 import resize,cvtColor,threshold,blur,adaptiveThreshold,getStructuringElement,morphologyEx,findContours,contourArea,arcLength,approxPolyDP,drawContours,boundingRect,rectangle,getPerspectiveTransform,warpPerspective,imshow,floodFill,Canny,COLOR_BGR2GRAY,THRESH_BINARY,ADAPTIVE_THRESH_MEAN_C,MORPH_RECT,MORPH_ELLIPSE,MORPH_CLOSE,MORPH_OPEN,RETR_EXTERNAL,CHAIN_APPROX_SIMPLE,INTER_NEAREST
 from imutils import resize
 from numpy import zeros,argmin,sort,sum,asarray,copy,ndarray,float32,uint8,where
-from app.utils.constants import template_symbols_dict
+from .constants import template_symbols_dict
 
 # Returns [processed image, ratio of old/new image]
 # Notes: Processing will only work if there is a distinguished background on all four sides

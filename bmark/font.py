@@ -2,6 +2,7 @@ from .svg import convert_from_image, remove_zigzags, get_height, stretch_char, t
 
 import os
 import sys
+import pkg_resources
 import fontTools.svgLib.path as svg_path
 from fontTools.fontBuilder import FontBuilder
 from fontTools.pens.t2CharStringPen import T2CharStringPen
@@ -26,7 +27,10 @@ def __main__():
 
 def create(path, svg_path, font_path):
     char_types = yaml.safe_load(
-        open(os.getcwd() + "/app/utils/character-types.yaml"))
+        pkg_resources.resource_stream(__name__, "character-types.yaml")
+        #    open(pkg_resources.get_resource_filename(__name__, "character-types.yaml"))
+        #open(_os.join(_file__, "character-types.yaml"))
+    )
 
     svgs = {}
     for filename in tqdm([
