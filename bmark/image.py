@@ -3,7 +3,6 @@
 from imutils import resize
 import numpy as np
 import cv2
-from .constants import template_symbols_dict
 
 # Returns [processed image, ratio of old/new image]
 # Notes: Processing will only work if there is a distinguished background on all four sides
@@ -212,8 +211,7 @@ def unbox_image(img):
 # Returns [horizontal gridlines, vertical gridlines, score]
 # Score is used to judge how well the gridlines were found. It is not used at the moment.
 # Author: Braeden Burgard
-def detect_gridlines(processed_image, template_type):
-    template = template_symbols_dict[template_type]
+def detect_gridlines(processed_image, template):
     #sum up the total number of black pixels in each row/column
     sumhorizontal = np.zeros(processed_image.shape[0])
     sumvertical = np.zeros(processed_image.shape[1])
@@ -268,10 +266,9 @@ def detect_gridlines(processed_image, template_type):
 #Returns [cut images, flattened template]
 # Function to cut out the individual symbols from the gridlines
 # Author: Braeden Burgard
-def cut_image(image, processed_image, template_type, ratio):
+def cut_image(image, processed_image, template, ratio):
     ratio = image.shape[1] / processed_image.shape[1]
-    template = template_symbols_dict[template_type]
-    grid_tuple = detect_gridlines(processed_image,template_type)
+    grid_tuple = detect_gridlines(processed_image,template)
     cut_images = []
     for h in range(len(grid_tuple[0])-1):
         for v in range(len(grid_tuple[1])-1):
