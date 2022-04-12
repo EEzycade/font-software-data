@@ -1,9 +1,8 @@
 # Methods Used in manipulating the images
 
-import math
-from cv2 import resize,cvtColor,threshold,blur,adaptiveThreshold,getStructuringElement,morphologyEx,findContours,contourArea,arcLength,approxPolyDP,drawContours,boundingRect,rectangle,getPerspectiveTransform,warpPerspective,imshow,floodFill,Canny,COLOR_BGR2GRAY,THRESH_BINARY,ADAPTIVE_THRESH_MEAN_C,MORPH_RECT,MORPH_ELLIPSE,MORPH_CLOSE,MORPH_OPEN,RETR_EXTERNAL,CHAIN_APPROX_SIMPLE,INTER_NEAREST
 from imutils import resize
-from numpy import zeros,argmin,sort,sum,asarray,copy,ndarray,float32,uint8,where
+import numpy as np
+import cv2
 from .constants import template_symbols_dict
 
 # Returns [processed image, ratio of old/new image]
@@ -34,27 +33,27 @@ def process_image(image):
 # Author: Michaela Chen
 def threshold(image):
     # Convert to grayscale, blur to reduce noise, and threshold
-    gray = cvtColor(image, COLOR_BGR2GRAY)
-    blurred = blur(gray, (3,3))
-    thresh = adaptiveThreshold(blurred, 255, ADAPTIVE_THRESH_MEAN_C, THRESH_BINARY, 31, 10) #src,255=white,mean,binary,kernelsize(odd), kind of like standard dev
+    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    blurred = cv2.blur(gray, (3,3))
+    thresh = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_MEAN_C, cv2.THRESH_BINARY, 31, 10) #src,255=white,mean,binary,kernelsize(odd), kind of like standard dev
     return thresh
 
 # Cleans an image through erosion/dilation
 # Author: Michaela Chen
 def clean(image):
-    se1 = getStructuringElement(MORPH_RECT, (5,4))
-    se2 = getStructuringElement(MORPH_RECT, (3,4))
-    mask = morphologyEx(image, MORPH_CLOSE, se1)
-    mask = morphologyEx(mask, MORPH_OPEN, se2)
+    se1 = cv2.getStructuringElement(cv2.MORPH_RECT, (5,4))
+    se2 = cv2.getStructuringElement(cv2.MORPH_RECT, (3,4))
+    mask = cv2.morphologyEx(image, cv2.MORPH_CLOSE, se1)
+    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, se2)
     return mask
 
 # Cleans an image through erosion/dilation - removes mostly horizontal lines (for lined paper)
 # Author: Michaela Chen
 def removeHorizontal(image):
-    se1 = getStructuringElement(MORPH_RECT, (1,6))
-    se2 = getStructuringElement(MORPH_RECT, (2,3))
-    mask = morphologyEx(image, MORPH_CLOSE, se1)
-    mask = morphologyEx(mask, MORPH_OPEN, se2)
+    se1 = cv2.getStructuringElement(cv2.MORPH_RECT, (1,6))
+    se2 = cv2.getStructuringElement(cv2.MORPH_RECT, (2,3))
+    mask = cv2.morphologyEx(image, cv2.MORPH_CLOSE, se1)
+    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, se2)
     return mask
 
 # Finds the edges of the papers and crops
@@ -65,21 +64,21 @@ def crop(image):
     copy = image.copy()
     
     # Grayscale and blur the image
-    copy = threshold(copy)
+    copy = cv2.threshold(copy)
 
     # Find edges
-    canny = Canny(copy,100,300) # Find all the edges
-    contours, hierarchies = findContours(canny, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE) #find the list of edges
+    canny = cv2.Canny(copy,100,300) # Find all the edges
+    contours, hierarchies = cv2.findContours(canny, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE) #find the list of edges
 
     # Loop through all contours to find the largest contour aka the paper by area
     if len(contours) != 0:
         contour = 0 
         max_area = 0
         for x in contours:
-            area = contourArea(x) # Current contour's area
+            area = cv2.contourArea(x) # Current contour's area
             if area > max_area:
-                perimeter = arcLength(x,True)
-                approx = approxPolyDP(x,0.02*perimeter,True) # Makes it approx a type of polygon. we want it to return as a quadrilateral
+                perimeter = cv2.arcLength(x,True)
+                approx = cv2.approxPolyDP(x,0.02*perimeter,True) # Makes it approx a type of polygon. we want it to return as a quadrilateral
                 # Test to see if it's a quadrilateral
                 if len(approx) == 4:
                     contour = approx
@@ -87,13 +86,13 @@ def crop(image):
     # Contour returns the four points of the largest contour
     
     # Show contours
-    drawContours(image,[contour], -1, (0, 255, 0), 3) # Draw on original non grayscale image for better visual
+    cv2.drawContours(image,[contour], -1, (0, 255, 0), 3) # Draw on original non grayscale image for better visual
     
     ## Transform Image
     
     # Find dst for warp perspective
-    x,y,w,h = boundingRect(contour) # Bounding rectangle of the piece of paper
-    rectangle(image, (x,y), (x+w, y+h), (0, 255, 0), 2) # Draw the rectangle onto original non grayscale image
+    x,y,w,h = cv2.boundingRect(contour) # Bounding rectangle of the piece of paper
+    cv2.rectangle(image, (x,y), (x+w, y+h), (0, 255, 0), 2) # Draw the rectangle onto original non grayscale image
     
     # Get coordinates from contour for src
     a = contour[0][0]
@@ -113,10 +112,10 @@ def crop(image):
     d = srcCoord[3]
     
     # Transform the image
-    src = float32([(a[0], a[1]), (b[0], b[1]), (c[0], c[1]), (d[0], d[1])])
-    dst = float32([(0,0), (0,h), (w,h), (w,0)]) # Starts at the origin and goes counterclockwise
-    m = getPerspectiveTransform(src, dst) # Gets transformation matrix
-    warped = warpPerspective(copy, m, (w, h), flags=INTER_NEAREST)
+    src = np.float32([(a[0], a[1]), (b[0], b[1]), (c[0], c[1]), (d[0], d[1])])
+    dst = np.float32([(0,0), (0,h), (w,h), (w,0)]) # Starts at the origin and goes counterclockwise
+    m = cv2.getPerspectiveTransform(src, dst) # Gets transformation matrix
+    warped = cv2.warpPerspective(copy, m, (w, h), flags=cv2.INTER_NEAREST)
 
     return warped
 
@@ -130,9 +129,9 @@ def matchCorners(src,dst):
         #print("x: " + str(x))
         #print(dst[x])
         index = 0
-        minDistance = math.sqrt((src[0][0]-dst[x][0])*(src[0][0]-dst[x][0])+(src[0][1]-dst[x][1])*(src[0][1]-dst[x][1]))
+        minDistance = np.sqrt((src[0][0]-dst[x][0])*(src[0][0]-dst[x][0])+(src[0][1]-dst[x][1])*(src[0][1]-dst[x][1]))
         for y in range(4):
-            distance = math.sqrt((src[y][0]-dst[x][0])*(src[y][0]-dst[x][0])+(src[y][1]-dst[x][1])*(src[y][1]-dst[x][1]))
+            distance = np.sqrt((src[y][0]-dst[x][0])*(src[y][0]-dst[x][0])+(src[y][1]-dst[x][1])*(src[y][1]-dst[x][1]))
             #print(src) 
             #print("y: " + str(y))
             if (distance < minDistance):
@@ -156,19 +155,19 @@ def find_square_in_middle(mask):
     # center of the image. If the box goes through the center
     # this may fail
     if mask[:mask.shape[0]//2,:].all(1).any():
-        i = where(mask[:mask.shape[0]//2,:].all(1))[0][-1]
+        i = np.where(mask[:mask.shape[0]//2,:].all(1))[0][-1]
     else:
         i = 0
     if mask[mask.shape[0]//2:,:].all(1).any():
-        j = where(mask[mask.shape[0]//2:,:].all(1))[0][0] + mask.shape[0]//2
+        j = np.where(mask[mask.shape[0]//2:,:].all(1))[0][0] + mask.shape[0]//2
     else:
         j = mask.shape[0] - 1
     if mask[:,:mask.shape[1]//2].all(0).any():
-        k = where(mask[:,:mask.shape[1]//2].all(0))[0][-1]
+        k = np.where(mask[:,:mask.shape[1]//2].all(0))[0][-1]
     else:
         k = 0
     if mask[:,mask.shape[1]//2:].all(0).any():
-        l = where(mask[:,mask.shape[1]//2:].all(0))[0][0] + mask.shape[1]//2
+        l = np.where(mask[:,mask.shape[1]//2:].all(0))[0][0] + mask.shape[1]//2
     else:
         l = mask.shape[1] - 1
 
@@ -195,21 +194,21 @@ def unbox_image(img):
 
     If the character goes out of the image bounds there's gonna be a problem
     """
-    img_bw = 255*(img <= 128).astype(uint8)
-    mask = zeros((img.shape[0] + 2, img.shape[1] + 2), dtype=uint8)
+    img_bw = 255*(img <= 128).astype(np.uint8)
+    mask = np.zeros((img.shape[0] + 2, img.shape[1] + 2), dtype=np.uint8)
 
     # Floodfill all dark pixels near borders as they are likely part of the box
     # If the character goes off the edge of the image, this is going to cause problems
     for i in range(img_bw.shape[0]):
         if img_bw[i, 0]:
-            floodFill(img_bw, mask, (0, i), 128)
+            cv2.floodFill(img_bw, mask, (0, i), 128)
         if img_bw[i, -1]:
-            floodFill(img_bw, mask, (img_bw.shape[1]-1, i), 128)
+            cv2.floodFill(img_bw, mask, (img_bw.shape[1]-1, i), 128)
     for j in range(img_bw.shape[1]):
         if img_bw[0, j]:
-            floodFill(img_bw, mask, (j, 0), 128)
+            cv2.floodFill(img_bw, mask, (j, 0), 128)
         if img_bw[-1, j]:
-            floodFill(img_bw, mask, (j, img_bw.shape[0]-1), 128)
+            cv2.floodFill(img_bw, mask, (j, img_bw.shape[0]-1), 128)
 
     i, j, k, l = find_square_in_middle(mask[1:-1,1:-1])
     if i >= j or k >= l:
@@ -226,8 +225,8 @@ def unbox_image(img):
 def detect_gridlines(processed_image, template_type):
     template = template_symbols_dict[template_type]
     #sum up the total number of black pixels in each row/column
-    sumhorizontal = zeros(processed_image.shape[0])
-    sumvertical = zeros(processed_image.shape[1])
+    sumhorizontal = np.zeros(processed_image.shape[0])
+    sumvertical = np.zeros(processed_image.shape[1])
     for i in range(0,int(processed_image.shape[0])):
         for j in range(0,int(processed_image.shape[1])):
             sumhorizontal[i] += processed_image[i][j]/255
@@ -243,9 +242,9 @@ def detect_gridlines(processed_image, template_type):
                     
     horizontal_lines = len(template)+1
     horizontal_interval = int(processed_image.shape[0] / 2 / horizontal_lines)
-    min_horizontal_positions = zeros(horizontal_lines)
+    min_horizontal_positions = np.zeros(horizontal_lines)
     for line in range(horizontal_lines):
-        min_index = argmin(sumhorizontal)
+        min_index = np.argmin(sumhorizontal)
         min_horizontal_positions[line] = min_index
         
         if min_index < horizontal_interval:
@@ -258,9 +257,9 @@ def detect_gridlines(processed_image, template_type):
             
     vertical_lines = len(template[0])+1
     vertical_interval = int(processed_image.shape[1] / 2 / vertical_lines)
-    min_vertical_positions = zeros(vertical_lines)
+    min_vertical_positions = np.zeros(vertical_lines)
     for line in range(vertical_lines):
-        min_index = argmin(sumvertical)
+        min_index = np.argmin(sumvertical)
         min_vertical_positions[line] = min_index
         
         if min_index < vertical_interval:
@@ -271,8 +270,8 @@ def detect_gridlines(processed_image, template_type):
             sumvertical[i] = 999
             i += 1
 
-    min_horizontal_positions = sort(min_horizontal_positions).astype(int)
-    min_vertical_positions = sort(min_vertical_positions).astype(int)
+    min_horizontal_positions = np.sort(min_horizontal_positions).astype(int)
+    min_vertical_positions = np.sort(min_vertical_positions).astype(int)
     score = sum(min_horizontal_positions) + sum(min_vertical_positions)
     return [min_horizontal_positions,min_vertical_positions,score]
 
@@ -287,13 +286,13 @@ def cut_image(image, processed_image, template_type, ratio):
     for h in range(len(grid_tuple[0])-1):
         for v in range(len(grid_tuple[1])-1):
             cut_images.append(image[int(grid_tuple[0][h]*ratio) : int(grid_tuple[0][h+1]*ratio), int(grid_tuple[1][v]*ratio) : int(grid_tuple[1][v+1]*ratio)])
-    flattened_template = tuple(asarray(template).flatten())
+    flattened_template = tuple(np.asarray(template).flatten())
     return [cut_images,flattened_template]
 
 # Returns an image with the gridlines drawn in. For debugging purposes
 # Author: Braeden Burgard
 def dev_grid_picture(processed_image, horizontal_lines, vertical_lines):
-    gridded_image = copy(processed_image)
+    gridded_image = np.copy(processed_image)
     for i in horizontal_lines:
         for j in range(gridded_image.shape[1]):
             gridded_image[i][j] = 130
