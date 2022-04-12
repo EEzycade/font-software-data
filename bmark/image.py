@@ -10,21 +10,11 @@ from .constants import template_symbols_dict
 # Will crash if there are less than 4 sides detected.
 # Authors: Michaela Chen, Braeden Burgard, and Hans Husurianto
 def process_image(image):
-    #resized = resize(image, width=100)
-    #ratio = image.shape[0] / float(resized.shape[0])
-
-    # Threshold
-    # thresh = threshold(resized)
-    # Remove noise
-    #mask = clean(thresh)
-
     # Crop
     img = crop(image)
     resized = resize(img, width=100)
     ratio = img.shape[0] / float(resized.shape[0])
 
-    #img = threshold(resized)
-    #img = clean(img)
     cut = img.copy()
 
     return [cut,ratio]
