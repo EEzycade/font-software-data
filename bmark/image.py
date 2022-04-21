@@ -1,6 +1,6 @@
 # Methods Used in manipulating the images
 
-from imutils import resize
+import imutils
 import numpy as np
 import cv2
 
@@ -11,7 +11,7 @@ import cv2
 def process_image(image):
     # Crop
     img = crop(image)
-    resized = resize(img, width=100)
+    resized = imutils.resize(img, width=100)
     ratio = img.shape[0] / float(resized.shape[0])
 
     cut = img.copy()
@@ -134,7 +134,7 @@ def matchCorners(src,dst):
 
 # Resize the image for faster processing in detecting gridlines
 def resize_image(image, width=100):
-    return (resize(image, width), image.shape[1]/width)
+    return (imutils.resize(image, width), image.shape[1]/width)
 
 def find_square_in_middle(mask):
     # If there are any rows/columns that are totally filled,
@@ -287,3 +287,10 @@ def dev_grid_picture(processed_image, horizontal_lines, vertical_lines):
         for i in range(gridded_image.shape[0]):
             gridded_image[i][j] = 130
     return gridded_image
+
+# Create aliases for the *_image functions (ie. cut_image = cut)
+# Eventually remove the `_image` suffix, but for now just create an alias
+for name, func in list(locals().items()):
+    if name.endswith("_image"):
+        short_name = name[:name.rindex("_image")]
+        locals()[short_name] = func
