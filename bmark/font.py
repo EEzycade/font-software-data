@@ -1,4 +1,5 @@
 from .svg import convert_from_image, remove_zigzags, get_height, stretch_char, to_str
+from .merge_font import merge_font
 
 import os
 import sys
