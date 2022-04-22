@@ -1,2 +1,2 @@
-from . import font, svg, image
+from . import font, svg, image, template
 
