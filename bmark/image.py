@@ -136,27 +136,27 @@ def matchCorners(src,dst):
 def resize_image(image, width=100):
     return (imutils.resize(image, width), image.shape[1]/width)
 
-def find_square_in_middle(mask):
-    # If there are any rows/columns that are totally filled,
+def find_square_in_middle(mask: np.ndarray) -> tuple[int]:
+    # If there are any rows/columns that are 98% filled,
     # use them as the starting box, otherwise use the original
     # image frame as the box.
     # Here we assume that the character is more or less in the
     # center of the image. If the box goes through the center
     # this may fail
-    if mask[:mask.shape[0]//2,:].all(1).any():
-        i = np.where(mask[:mask.shape[0]//2,:].all(1))[0][-1]
+    if (mask[:mask.shape[0]//2,:].mean(1) >= 0.98).any():
+        i = np.where(mask[:mask.shape[0]//2,:].mean(1) >= 0.98)[0][-1]
     else:
         i = 0
-    if mask[mask.shape[0]//2:,:].all(1).any():
-        j = np.where(mask[mask.shape[0]//2:,:].all(1))[0][0] + mask.shape[0]//2
+    if (mask[mask.shape[0]//2:,:].mean(1) >= 0.98).any():
+        j = np.where(mask[mask.shape[0]//2:,:].mean(1) >= 0.98)[0][0] + mask.shape[0]//2
     else:
         j = mask.shape[0] - 1
-    if mask[:,:mask.shape[1]//2].all(0).any():
-        k = np.where(mask[:,:mask.shape[1]//2].all(0))[0][-1]
+    if (mask[:,:mask.shape[1]//2].mean(0) >= 0.98).any():
+        k = np.where(mask[:,:mask.shape[1]//2].mean(0) >= 0.98)[0][-1]
     else:
         k = 0
-    if mask[:,mask.shape[1]//2:].all(0).any():
-        l = np.where(mask[:,mask.shape[1]//2:].all(0))[0][0] + mask.shape[1]//2
+    if (mask[:,mask.shape[1]//2:].mean(0) >= 0.98).any():
+        l = np.where(mask[:,mask.shape[1]//2:].mean(0) >= 0.98)[0][0] + mask.shape[1]//2
     else:
         l = mask.shape[1] - 1
 
@@ -178,7 +178,7 @@ def find_square_in_middle(mask):
         else: assert False
     return i, j, k, l
 
-def unbox_image(img):
+def unbox_image(img: np.ndarray) -> np.ndarray:
     """Remove the box from the edges of the image
 
     If the character goes out of the image bounds there's gonna be a problem
