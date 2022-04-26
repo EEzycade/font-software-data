@@ -137,20 +137,21 @@ def find_square_in_middle(mask: np.ndarray) -> tuple[int]:
     # Here we assume that the character is more or less in the
     # center of the image. If the box goes through the center
     # this may fail
-    if (mask[:mask.shape[0]//2,:].mean(1) >= 0.98).any():
-        i = np.where(mask[:mask.shape[0]//2,:].mean(1) >= 0.98)[0][-1]
+    TOLERANCE = 0.98
+    if (mask[:mask.shape[0]//2,:].mean(1) >= TOLERANCE).any():
+        i = np.where(mask[:mask.shape[0]//2,:].mean(1) >= TOLERANCE)[0][-1]
     else:
         i = 0
-    if (mask[mask.shape[0]//2:,:].mean(1) >= 0.98).any():
-        j = np.where(mask[mask.shape[0]//2:,:].mean(1) >= 0.98)[0][0] + mask.shape[0]//2
+    if (mask[mask.shape[0]//2:,:].mean(1) >= TOLERANCE).any():
+        j = np.where(mask[mask.shape[0]//2:,:].mean(1) >= TOLERANCE)[0][0] + mask.shape[0]//2
     else:
         j = mask.shape[0] - 1
-    if (mask[:,:mask.shape[1]//2].mean(0) >= 0.98).any():
-        k = np.where(mask[:,:mask.shape[1]//2].mean(0) >= 0.98)[0][-1]
+    if (mask[:,:mask.shape[1]//2].mean(0) >= TOLERANCE).any():
+        k = np.where(mask[:,:mask.shape[1]//2].mean(0) >= TOLERANCE)[0][-1]
     else:
         k = 0
-    if (mask[:,mask.shape[1]//2:].mean(0) >= 0.98).any():
-        l = np.where(mask[:,mask.shape[1]//2:].mean(0) >= 0.98)[0][0] + mask.shape[1]//2
+    if (mask[:,mask.shape[1]//2:].mean(0) >= TOLERANCE).any():
+        l = np.where(mask[:,mask.shape[1]//2:].mean(0) >= TOLERANCE)[0][0] + mask.shape[1]//2
     else:
         l = mask.shape[1] - 1
 
