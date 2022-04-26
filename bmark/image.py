@@ -1,22 +1,18 @@
 # Methods Used in manipulating the images
 
-import imutils
 import numpy as np
 import cv2
 
-# Returns [processed image, ratio of old/new image]
+# Returns processed image
 # Notes: Processing will only work if there is a distinguished background on all four sides
 # Will crash if there are less than 4 sides detected.
 # Authors: Michaela Chen, Braeden Burgard, and Hans Husurianto
-def process_image(image):
-    # Crop
-    img = crop(image)
-    resized = imutils.resize(img, width=100)
-    ratio = img.shape[0] / float(resized.shape[0])
+def process_image(image, resolution = 300):
+    resized = resize_image(image, resolution)
+    thresh = threshold(resized)
+    processed = thresh.copy()
 
-    cut = img.copy()
-
-    return [cut,ratio]
+    return processed
 
 # Turns the original image to b/w (mostly removes shadows) and removes some noise
 # Author: Michaela Chen
@@ -49,92 +45,90 @@ def removeHorizontal(image):
 # Maybe we can do this in real time?? not sure if design team would need to create interface
 # Author: Michaela Chen
 def crop(image):
-    # Make a copy of the image
+    #make a copy of the image to find edges of the paper
     copy = image.copy()
-    
-    # Grayscale and blur the image
     copy = threshold(copy)
 
-    # Find edges
-    canny = cv2.Canny(copy,100,300) # Find all the edges
+    #add a border around the copy, so canny can find a closed shape even when paper touches an edge
+    top, bottom, left, right = [50]*4
+    copy = cv2.copyMakeBorder(copy, top, bottom, left, right, cv2.BORDER_CONSTANT, value=[0,0,0])
+    image = cv2.copyMakeBorder(image, top, bottom, left, right, cv2.BORDER_CONSTANT, value=[0,0,0])
+    
+    #find edges
+    canny = cv2.Canny(copy,100,300) #find all the edges
     contours, hierarchies = cv2.findContours(canny, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE) #find the list of edges
 
-    # Loop through all contours to find the largest contour aka the paper by area
+    #loop through all contours to find the largest contour aka the paper by area
     if len(contours) != 0:
         contour = 0 
         max_area = 0
+        count = 0
+        number = 0
         for x in contours:
-            area = cv2.contourArea(x) # Current contour's area
+            count+=1
+            area = cv2.contourArea(x) #current contour's area
             if area > max_area:
                 perimeter = cv2.arcLength(x,True)
-                approx = cv2.approxPolyDP(x,0.02*perimeter,True) # Makes it approx a type of polygon. we want it to return as a quadrilateral
-                # Test to see if it's a quadrilateral
+                approx = cv2.approxPolyDP(x,0.02*perimeter,True) #makes it approx a type of polygon. we want it to return as a quadrilateral
+                #test to see if it's a quadrilateral
+                #print(count,len(approx))
                 if len(approx) == 4:
                     contour = approx
                     max_area = area
-    # Contour returns the four points of the largest contour
+                    number = count
+                    
     
-    # Show contours
-    cv2.drawContours(image,[contour], -1, (0, 255, 0), 3) # Draw on original non grayscale image for better visual
+    #find dst for warp perspective
+    x,y,w,h = cv2.boundingRect(contour) #bounding rectangle of the piece of paper
     
-    ## Transform Image
-    
-    # Find dst for warp perspective
-    x,y,w,h = cv2.boundingRect(contour) # Bounding rectangle of the piece of paper
-    cv2.rectangle(image, (x,y), (x+w, y+h), (0, 255, 0), 2) # Draw the rectangle onto original non grayscale image
-    
-    # Get coordinates from contour for src
+    #get coordinates from contour for src
     a = contour[0][0]
     b = contour[1][0]
     c = contour[2][0]
     d = contour[3][0]
     
-    # Match the corners of the paper to the bounding rectangle
+    #match the corners of the paper to the bounding rectangle
     srcCoord = [[a[0],a[1]],[b[0],b[1]],[c[0],c[1]],[d[0],d[1]]]
     dstCoord = [[x,y], [x,y+h], [x+w,y+h], [x+w,y]]
     srcCoord = matchCorners(srcCoord,dstCoord)
     
-    # Set the variables
+    #set the variables
     a = srcCoord[0]
     b = srcCoord[1]
     c = srcCoord[2]
     d = srcCoord[3]
     
-    # Transform the image
+    #transform
     src = np.float32([(a[0], a[1]), (b[0], b[1]), (c[0], c[1]), (d[0], d[1])])
-    dst = np.float32([(0,0), (0,h), (w,h), (w,0)]) # Starts at the origin and goes counterclockwise
-    m = cv2.getPerspectiveTransform(src, dst) # Gets transformation matrix
-    warped = cv2.warpPerspective(copy, m, (w, h), flags=cv2.INTER_NEAREST)
+    dst = np.float32([(0,0), (0,h), (w,h), (w,0)]) #starts at the origin and goes counterclockwise
+    m = cv2.getPerspectiveTransform(src, dst) #gets transformation matrix
+    warped = cv2.warpPerspective(image, m, (w, h), flags=cv2.INTER_NEAREST)
+    
+    #crop edge a little bit to remove edge pieces
+    crop_amount_y = (int)(.01*h)
+    crop_amount_x = (int)(.01*w)
+    cropped = warped[crop_amount_y:h-crop_amount_y,crop_amount_x:w-crop_amount_x]
 
-    return warped
+    return cropped
 
 # Finds the corners of the paper and matches them to the bounding rectangle
 # Author: Michaela Chen
 def matchCorners(src,dst):
-    #print(src)  
-    #print(dst)
     result = []
     for x in range(4):
-        #print("x: " + str(x))
-        #print(dst[x])
         index = 0
         minDistance = np.sqrt((src[0][0]-dst[x][0])*(src[0][0]-dst[x][0])+(src[0][1]-dst[x][1])*(src[0][1]-dst[x][1]))
         for y in range(4):
             distance = np.sqrt((src[y][0]-dst[x][0])*(src[y][0]-dst[x][0])+(src[y][1]-dst[x][1])*(src[y][1]-dst[x][1]))
-            #print(src) 
-            #print("y: " + str(y))
             if (distance < minDistance):
                 minDistance = distance
                 index = y
-        #print(src[index])
-        #print()
         result.append(src[index])
-    #print(result)
     return result
 
 # Resize the image for faster processing in detecting gridlines
 def resize_image(image, width=100):
-    return (imutils.resize(image, width), image.shape[1]/width)
+    return cv2.resize(image, (width,width))
 
 def find_square_in_middle(mask: np.ndarray) -> tuple[int]:
     # If there are any rows/columns that are 98% filled,
@@ -229,7 +223,7 @@ def detect_gridlines(processed_image, template):
             sumvertical[i] = 999
                     
     horizontal_lines = len(template)+1
-    horizontal_interval = int(processed_image.shape[0] / 2 / horizontal_lines)
+    horizontal_interval = int(processed_image.shape[0] / 5 / horizontal_lines)
     min_horizontal_positions = np.zeros(horizontal_lines)
     for line in range(horizontal_lines):
         min_index = np.argmin(sumhorizontal)
@@ -244,7 +238,7 @@ def detect_gridlines(processed_image, template):
             i += 1
             
     vertical_lines = len(template[0])+1
-    vertical_interval = int(processed_image.shape[1] / 2 / vertical_lines)
+    vertical_interval = int(processed_image.shape[1] / 5 / vertical_lines)
     min_vertical_positions = np.zeros(vertical_lines)
     for line in range(vertical_lines):
         min_index = np.argmin(sumvertical)
@@ -266,13 +260,16 @@ def detect_gridlines(processed_image, template):
 #Returns [cut images, flattened template]
 # Function to cut out the individual symbols from the gridlines
 # Author: Braeden Burgard
-def cut_image(image, processed_image, template, ratio):
-    ratio = image.shape[1] / processed_image.shape[1]
-    grid_tuple = detect_gridlines(processed_image,template)
+def cut_image(image, processed_image, template):
+    h_ratio = image.shape[1] / processed_image.shape[1]
+    v_ratio = image.shape[0] / processed_image.shape[0]
+    [horizontal_gridlines, vertical_gridlines, score] = detect_gridlines(processed_image,template)
     cut_images = []
-    for h in range(len(grid_tuple[0])-1):
-        for v in range(len(grid_tuple[1])-1):
-            cut_images.append(image[int(grid_tuple[0][h]*ratio) : int(grid_tuple[0][h+1]*ratio), int(grid_tuple[1][v]*ratio) : int(grid_tuple[1][v+1]*ratio)])
+    for h in range(len(horizontal_gridlines)-1):
+        for v in range(len(vertical_gridlines)-1):
+            cut_images.append(
+                image[int(horizontal_gridlines[h]*v_ratio) : int(horizontal_gridlines[h+1]*v_ratio),
+                      int(vertical_gridlines[v]*h_ratio)   : int(vertical_gridlines[v+1]*h_ratio)])
     flattened_template = tuple(np.asarray(template).flatten())
     return [cut_images,flattened_template]
 
