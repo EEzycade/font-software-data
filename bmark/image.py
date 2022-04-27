@@ -130,7 +130,7 @@ def matchCorners(src,dst):
 def resize_image(image, width=100):
     return cv2.resize(image, (width,width))
 
-def find_square_in_middle(mask: np.ndarray) -> tuple[int]:
+def find_square_in_middle(mask: np.ndarray) -> tuple:
     # If there are any rows/columns that are 98% filled,
     # use them as the starting box, otherwise use the original
     # image frame as the box.
