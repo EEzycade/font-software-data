@@ -15,7 +15,7 @@ try:
     from tqdm import tqdm
 except ImportError:
     # But don't throw an error if not
-    tqdm = lambda it: it
+    def tqdm(it): return it
 
 
 def __main__():
@@ -51,12 +51,15 @@ def create(path, svg_path, font_path):
     for char, svg in svgs.items():
         height = get_height(svg)
         if np.isfinite(height):
-            height_data[char_types[char]].append(height)
+            height_data[char_types[char[0]]].append(height)
         else:
-            print(f"Warning! Character {char} has an invalid height: {height}. Check unboxed image.")
+            print(
+                f"Warning! Character {char[0]} has an invalid height: {height}. Check unboxed image.")
 
-    tall_upper = sum(height_data["tall"]) / len(height_data["tall"]) if height_data["tall"] else 1
-    small_upper = sum(height_data["small"]) / len(height_data["small"]) if height_data["small"] else 1
+    tall_upper = sum(height_data["tall"]) / \
+        len(height_data["tall"]) if height_data["tall"] else 1
+    small_upper = sum(
+        height_data["small"]) / len(height_data["small"]) if height_data["small"] else 1
     desc_lower = (  # calculate average underhand taking base height into account
         (
             small_upper * len(height_data["descender"])
@@ -75,7 +78,7 @@ def create(path, svg_path, font_path):
     desc_lower *= scale_factor
 
     for char, svg in svgs.items():
-        char_type = char_types[char]
+        char_type = char_types[char[0]]
         stretch_char(
             svg,
             lower=desc_lower if "descender" in char_type else 0.0,
@@ -106,7 +109,7 @@ def create_from_svgs(path, font_path):
     for filename in os.listdir(path):
         if filename.split(".")[-1] == "svg":
             char_string = draw_charstr(os.path.join(path, filename))
-            char = filename.split('.')[0]
+            char = filename.split('.')[0][0]
             char_strings[char] = char_string
             glyph_order.append(char)
             char_map[ord(char)] = char
