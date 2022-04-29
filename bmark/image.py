@@ -47,12 +47,19 @@ def removeHorizontal(image):
 def crop(image):
     #make a copy of the image to find edges of the paper
     copy = image.copy()
-    copy = threshold(copy)
-
-    #add a border around the copy, so canny can find a closed shape even when paper touches an edge
+    
+    #grayscale the image
+    copy = cv2.cvtColor(copy, cv2.COLOR_BGR2GRAY)
+    
+    #add a black border around the copy, so canny can find a closed shape even when paper touches an edge
     top, bottom, left, right = [50]*4
     copy = cv2.copyMakeBorder(copy, top, bottom, left, right, cv2.BORDER_CONSTANT, value=[0,0,0])
     image = cv2.copyMakeBorder(image, top, bottom, left, right, cv2.BORDER_CONSTANT, value=[0,0,0])
+    
+    #blur and threshold the image so only large shapes remain
+    blur_ratio = int(max(copy.shape)/90)
+    copy = cv2.blur(copy, (blur_ratio,blur_ratio))
+    copy = cv2.threshold(copy,(int)(cv2.mean(copy)[0]*.3),255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)[1]
     
     #find edges
     canny = cv2.Canny(copy,100,300) #find all the edges
@@ -76,7 +83,6 @@ def crop(image):
                     contour = approx
                     max_area = area
                     number = count
-                    
     
     #find dst for warp perspective
     x,y,w,h = cv2.boundingRect(contour) #bounding rectangle of the piece of paper
