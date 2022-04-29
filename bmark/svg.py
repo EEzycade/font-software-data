@@ -21,7 +21,7 @@ def __main__():
         file.write(path_to_str(svg, width=img.width, height=img.height))
     print(f"Saved to '{img_output_path}'")
 
-def convert_from_image(img: PIL.Image, turdsize=50, opttolerance=0.2, blacklevel=0.5, blur_radius=3, **kwargs) -> str:
+def convert_from_image(img: PIL.Image, turdsize=50, opttolerance=0.2, blacklevel=0.5, blur_radius=1, **kwargs) -> str:
     """Convert a PIL Image to a potrace Path
     
     img: PIL.Image
