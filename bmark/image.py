@@ -143,7 +143,7 @@ def find_square_in_middle(mask: np.ndarray) -> tuple:
     # Here we assume that the character is more or less in the
     # center of the image. If the box goes through the center
     # this may fail
-    TOLERANCE = 0.98
+    TOLERANCE = 0.90
     if (mask[:mask.shape[0]//2,:].mean(1) >= TOLERANCE).any():
         i = np.where(mask[:mask.shape[0]//2,:].mean(1) >= TOLERANCE)[0][-1]
     else:
